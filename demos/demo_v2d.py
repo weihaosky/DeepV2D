@@ -31,8 +31,10 @@ def load_test_sequence(path, n_frames=-1):
     images = [images[i] for i in inds]
 
     images = np.stack(images).astype(np.float32)
-    intrinsics = np.loadtxt(os.path.join(path, 'intrinsics.txt'))
-
+    if os.path.exists(os.path.join(path, 'intrinsics.txt')):
+        intrinsics = np.loadtxt(os.path.join(path, 'intrinsics.txt'))
+    else:
+	    intrinsics = None
     return images, intrinsics
 
 
