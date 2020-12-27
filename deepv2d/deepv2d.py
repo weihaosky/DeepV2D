@@ -14,7 +14,7 @@ from fcrn import fcrn
 from geometry.intrinsics import *
 from geometry.transformation import *
 from geometry import projective_ops
-
+import IPython, os
 
 def fill_depth(depth):
     """ Fill in the holes in the depth map """
@@ -397,7 +397,7 @@ class DeepV2D:
                     self.poses_placeholder: self.poses,
                     self.adj_placeholder: adj_list,
                     self.intrinsics_placeholder: self.intrinsics}
-
+ 
                 self.depths = self.sess.run(self.outputs['depths'], feed_dict=feed_dict)
 
             else: # we need to split up inference to fit in memory
@@ -413,27 +413,32 @@ class DeepV2D:
 
 
     def vizualize_output(self, inds=[0]):
+        output_dir = 'output/'
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
         feed_dict = {
             self.images_placeholder: self.images,
             self.depths_placeholder: self.depths,
             self.poses_placeholder: self.poses,
             self.intrinsics_placeholder: self.intrinsics}
-
-        keyframe_image = self.images[0]
-        keyframe_depth = self.depths[0]
-
-        image_depth = vis.create_image_depth_figure(keyframe_image, keyframe_depth)
-        cv2.imwrite('depth.png', image_depth[:, image_depth.shape[1]//2:])
-        cv2.imshow('image_depth', image_depth/255.0)
         
-        print("Press any key to cotinue")
-        cv2.waitKey()
+        for i in range(self.depths.shape[0]):
+            keyframe_image = self.images[i]
+            keyframe_depth = self.depths[i]
+
+            image_depth = vis.create_image_depth_figure(keyframe_image, keyframe_depth)
+            cv2.imwrite(output_dir + 'depth' + str(i) + '.png', image_depth[:, image_depth.shape[1]//2:])
+        #cv2.imshow('image_depth', image_depth/255.0)
+        
+        #print("Press any key to cotinue")
+        #cv2.waitKey()
 
         # use depth map to create point cloud
         point_cloud, point_colors = self.sess.run(self.outputs['point_cloud'], feed_dict=feed_dict)
-
-        print("Press q to exit")
-        vis.visualize_prediction(point_cloud, point_colors, self.poses)
+        np.save(output_dir + 'point_cloud', point_cloud)
+        np.save(output_dir + 'point_colors', point_colors)
+        #print("Press q to exit")
+        #vis.visualize_prediction(point_cloud, point_colors, self.poses)
 
 
     def __call__(self, images, intrinsics=None, iters=5, viz=False):
